@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Player, Reta, Sesion } from '../lib/types'
+import type { Player, Punto, Reta, Sesion } from '../lib/types'
+import { calcular, type Marcador } from '../lib/marcador'
 import { useRealtime } from '../hooks/useRealtime'
 import { fechaCorta } from '../lib/format'
 import { nivelCat } from '../lib/niveles'
@@ -10,6 +11,7 @@ export default function TV() {
   const [players, setPlayers] = useState<Player[]>([])
   const [retas, setRetas] = useState<Reta[]>([])
   const [sesiones, setSesiones] = useState<Sesion[]>([])
+  const [vivos, setVivos] = useState<{ reta: Reta; m: Marcador }[]>([])
   const [hora, setHora] = useState(new Date())
 
   const load = useCallback(async () => {
@@ -18,10 +20,17 @@ export default function TV() {
       supabase.from('ranked_retas').select('*').eq('estado', 'jugada').order('jugada_at', { ascending: false }).limit(5),
       supabase.from('ranked_sesiones').select('*').eq('estado', 'abierta').gte('fecha', new Date(Date.now() - 3 * 3600_000).toISOString()).order('fecha').limit(3),
     ])
+    const { data: v } = await supabase.from('ranked_retas').select('*').eq('estado', 'en_juego').order('fecha')
+    const enJuego = (v ?? []) as Reta[]
+    if (enJuego.length) {
+      const { data: pts } = await supabase.from('ranked_puntos').select('*').in('reta_id', enJuego.map((x) => x.id)).order('id')
+      const todos = (pts ?? []) as Punto[]
+      setVivos(enJuego.map((reta) => ({ reta, m: calcular(todos.filter((x) => x.reta_id === reta.id).map((x) => x.lado)) })))
+    } else setVivos([])
     setPlayers((p ?? []) as Player[]); setRetas((r ?? []) as Reta[]); setSesiones((s ?? []) as Sesion[])
   }, [])
   useEffect(() => { void load(); const t = setInterval(() => setHora(new Date()), 30_000); const t2 = setInterval(() => void load(), 60_000); return () => { clearInterval(t); clearInterval(t2) } }, [load])
-  useRealtime(['ranked_players', 'ranked_retas', 'ranked_sesiones', 'ranked_inscripciones'], () => void load())
+  useRealtime(['ranked_puntos', 'ranked_players', 'ranked_retas', 'ranked_sesiones', 'ranked_inscripciones'], () => void load())
 
   const nombre = (id: string | null) => players.find((p) => p.id === id)?.nombre ?? '—'
   return (
@@ -31,6 +40,24 @@ export default function TV() {
           <Logo size={44} />
           <div className="flex items-center gap-3 text-sm font-semibold text-soft"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-pos" /> EN VIVO · {hora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
+        {vivos.length > 0 && (
+          <section className="card mb-8 p-6">
+            <h2 className="mb-4 flex items-center gap-3 text-lg font-bold"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-neg" /> Jugando ahora</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {vivos.map(({ reta, m }) => (
+                <div key={reta.id} className="rounded-card border border-line bg-white p-5">
+                  {([[reta.jugador_a, m.juegosA, m.puntosA], [reta.jugador_b, m.juegosB, m.puntosB]] as const).map(([id, j, pt], i) => (
+                    <div key={id} className={`flex items-center justify-between text-3xl ${i === 0 ? 'mb-2 border-b border-line pb-2' : ''}`}>
+                      <span className="font-semibold">{nombre(id)}</span>
+                      <span className="flex items-center gap-6 tabular-nums"><b className="text-terra">{j}</b><b className="w-16 text-right">{pt}</b></span>
+                    </div>
+                  ))}
+                  <div className="mt-2 text-sm font-semibold text-soft">{m.tiebreak ? 'Tie-break' : m.puntoOro ? 'Punto de oro' : ''}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         <div className="grid gap-8 lg:grid-cols-3">
           <section className="card p-6 lg:col-span-2">
             <h2 className="mb-4 text-lg font-bold">Top 10 Ranked</h2>

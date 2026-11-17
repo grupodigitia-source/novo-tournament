@@ -40,6 +40,12 @@ export default function Programar() {
   const cerrar = async (s: Sesion) => {
     await supabase.from('ranked_sesiones').update({ estado: s.estado === 'abierta' ? 'cerrada' : 'abierta' }).eq('id', s.id); void load()
   }
+  const eliminar = async (s: Sesion) => {
+    if (!window.confirm(`¿Eliminar la reta del ${fechaCorta(s.fecha)}? Se borran también sus inscripciones. No se puede deshacer.`)) return
+    setErr(null)
+    const { error } = await supabase.from('ranked_sesiones').delete().eq('id', s.id)
+    if (error) setErr(error.message); else void load()
+  }
   const crearReta = async (e: FormEvent) => {
     e.preventDefault(); setErr(null)
     if (!par.a || !par.b || par.a === par.b) return setErr('Elige dos jugadores distintos.')
@@ -68,7 +74,7 @@ export default function Programar() {
           <div key={s.id} className="card rise p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3"><span className="font-semibold">{fechaCorta(s.fecha)}</span><NivelBadge nivel={s.nivel} /><span className="chip">{s.estado}</span><span className="font-mono text-xs text-soft">{s.codigo}</span></div>
-              <div className="flex gap-2"><Link className="btn-primary !py-1.5" to={`/admin/qr/${s.id}`}>QR</Link><button className="btn-ghost !py-1.5" onClick={() => void cerrar(s)}>{s.estado === 'abierta' ? 'Cerrar' : 'Reabrir'}</button></div>
+              <div className="flex gap-2"><Link className="btn-primary !py-1.5" to={`/admin/qr/${s.id}`}>QR</Link><button className="btn-ghost !py-1.5" onClick={() => void cerrar(s)}>{s.estado === 'abierta' ? 'Cerrar' : 'Reabrir'}</button><button className="btn-ghost !py-1.5 !text-neg" onClick={() => void eliminar(s)}>Eliminar</button></div>
             </div>
             {inscritos(s.id).length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-2 text-sm">

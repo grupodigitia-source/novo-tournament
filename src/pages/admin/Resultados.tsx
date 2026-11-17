@@ -14,7 +14,7 @@ export default function Resultados() {
 
   const load = useCallback(async () => {
     const [{ data: r }, { data: p }] = await Promise.all([
-      supabase.from('ranked_retas').select('*').eq('estado', 'pendiente').order('fecha'),
+      supabase.from('ranked_retas').select('*').in('estado', ['pendiente', 'en_juego']).order('fecha'),
       supabase.from('ranked_players').select('*'),
     ])
     setRetas((r ?? []) as Reta[]); setPlayers((p ?? []) as Player[])
@@ -31,6 +31,12 @@ export default function Resultados() {
     const d = data as { delta_a: number; delta_b: number }
     setOk(`Resultado guardado: ${pl(r.jugador_a)?.nombre} ${d.delta_a >= 0 ? '+' : ''}${d.delta_a} · ${pl(r.jugador_b)?.nombre} ${d.delta_b >= 0 ? '+' : ''}${d.delta_b}`)
     void load()
+  }
+
+  const eliminar = async (r: Reta) => {
+    if (!window.confirm('¿Eliminar este partido pendiente? No se puede deshacer.')) return
+    const { error } = await supabase.from('ranked_retas').delete().eq('id', r.id).in('estado', ['pendiente', 'en_juego'])
+    if (error) setErr(error.message); else void load()
   }
 
   return (
@@ -55,6 +61,7 @@ export default function Resultados() {
                 </div>
                 <div className="w-28 text-xs tabular-nums text-soft">{prev !== null && `${prev >= 0 ? '+' : ''}${prev} / ${-prev >= 0 ? '+' : ''}${-prev}`}</div>
                 <button className="btn-primary" onClick={() => void guardar(r)}>Guardar</button>
+                <button className="btn-ghost !text-neg" onClick={() => void eliminar(r)}>Eliminar</button>
               </div>
             )
           })}

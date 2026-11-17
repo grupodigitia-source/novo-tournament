@@ -15,6 +15,7 @@ export default function AdminLayout() {
       <nav className="no-print mb-6 flex flex-wrap gap-1">
         <NavLink to="/admin" end className={tab}>Jugadores</NavLink>
         <NavLink to="/admin/programar" className={tab}>Programar reta</NavLink>
+        <NavLink to="/admin/vivo" className={tab}>Marcador en vivo</NavLink>
         <NavLink to="/admin/resultados" className={tab}>Capturar resultado</NavLink>
         <NavLink to="/admin/simulador" className={tab}>Simulador</NavLink>
       </nav>
