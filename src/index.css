@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --mx: .5; --my: .5; --sp: 0; }
+html { scroll-behavior: smooth; }
+body { @apply bg-white text-ink font-sans antialiased; font-family: Inter, system-ui, sans-serif; }
+
+@layer components {
+  .card { @apply bg-white border border-line rounded-card shadow-card; }
+  .glass { background: rgba(255,255,255,.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-terra text-white hover:-translate-y-0.5 hover:shadow-up active:translate-y-0; }
+  .btn-ghost { @apply btn border border-line bg-white text-ink hover:bg-off; }
+  .input { @apply w-full rounded-btn border border-line bg-white px-3 py-2.5 text-sm outline-none transition focus:border-terra focus:ring-2 focus:ring-terra/15; }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-soft; }
+  .chip { @apply inline-flex items-center rounded-full border border-line bg-off px-2.5 py-0.5 text-xs font-semibold text-soft; }
+}
+
+/* Entrada al hacer scroll / carga */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .55s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes pop { 0% { transform: scale(.96); opacity: 0 } 100% { transform: none; opacity: 1 } }
+.pop { animation: pop .35s ease both; }
+@keyframes flash-up { 0% { background: rgba(31,138,76,.18) } 100% { background: transparent } }
+@keyframes flash-down { 0% { background: rgba(192,57,43,.14) } 100% { background: transparent } }
+.flash-up { animation: flash-up 1.6s ease-out; }
+.flash-down { animation: flash-down 1.6s ease-out; }
+@keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+.float { animation: float 5s ease-in-out infinite; }
+
+/* Decoración de fondo: capa fija, reacciona al mouse y al scroll */
+.decor { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.decor svg { position: absolute; will-change: transform; }
+.decor-trophy { right: 4vw; top: 14vh; width: min(34vw, 340px); opacity: .10;
+  transform: translate(calc((var(--mx) - .5) * -26px), calc((var(--my) - .5) * -18px + var(--sp) * -80px)) rotate(calc(var(--sp) * 8deg)); }
+.decor-bracket { left: -2vw; bottom: 4vh; width: min(70vw, 780px); opacity: .9;
+  transform: translate(calc((var(--mx) - .5) * 16px), calc(var(--sp) * -60px)); }
+.decor-bracket path { stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--sp) * 1.4); }
+@keyframes bounce-roll {
+  0% { transform: translate(0, 0) rotate(0) } 25% { transform: translate(18vw, -9vh) rotate(180deg) }
+  50% { transform: translate(36vw, 0) rotate(360deg) } 75% { transform: translate(54vw, -9vh) rotate(540deg) }
+  100% { transform: translate(72vw, 0) rotate(720deg) }
+}
+.decor-ball { left: 4vw; bottom: 3vh; width: 44px; opacity: .55; animation: bounce-roll 14s ease-in-out infinite alternate; }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; inset: 0; margin: 0; box-shadow: none; border: 0; }
+  .decor, .no-print { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, .decor-ball { animation: none !important; transition: none !important; }
+}
