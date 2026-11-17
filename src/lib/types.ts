@@ -26,11 +26,16 @@ export interface Reta {
   jugador_a: string
   jugador_b: string
   fecha: string
-  estado: 'pendiente' | 'jugada' | 'cancelada'
+  estado: 'pendiente' | 'en_juego' | 'jugada' | 'cancelada'
   sets_a: number | null
   sets_b: number | null
   ganador: string | null
   delta_a: number | null
   delta_b: number | null
   sesion_id: string | null
+}
+export interface Punto {
+  id: number
+  reta_id: string
+  lado: 'a' | 'b'
 }

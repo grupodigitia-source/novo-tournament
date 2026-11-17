@@ -10,6 +10,7 @@ import Perfil from './pages/Perfil'
 import AdminLayout from './pages/admin/AdminLayout'
 import Jugadores from './pages/admin/Jugadores'
 import Programar from './pages/admin/Programar'
+import EnVivo from './pages/admin/EnVivo'
 import Resultados from './pages/admin/Resultados'
 import Simulador from './pages/admin/Simulador'
 import QRPrint from './pages/admin/QRPrint'
@@ -30,7 +31,8 @@ export default function App() {
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Jugadores />} />
           <Route path="programar" element={<Programar />} />
-          <Route path="resultados" element={<Resultados />} />
+          <Route path="vivo" element={<EnVivo />} />
+          <Route path="resultados"element={<Resultados />} />
           <Route path="simulador" element={<Simulador />} />
           <Route path="qr/:id" element={<QRPrint />} />
         </Route>

@@ -20,11 +20,13 @@ function Linea({ serie }: { serie: number[] }) {
 }
 
 export default function Perfil() {
-  const { session, player, loading, isAdmin } = useAuth()
+  const { session, player, loading, isAdmin, refresh } = useAuth()
   const [optin, setOptin] = useState<boolean | null>(null)
   const [todos, setTodos] = useState<Player[]>([])
   const [retas, setRetas] = useState<Reta[]>([])
   const [proximas, setProximas] = useState<{ ins: Inscripcion; ses: Sesion }[]>([])
+  const [datos, setDatos] = useState<{ nombre: string; edad: string; genero: string; cp: string } | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
   const pid = player?.id
 
   const cargar = useCallback(async () => {
@@ -46,8 +48,11 @@ export default function Perfil() {
   useRealtime(['ranked_retas', 'ranked_players', 'ranked_inscripciones'], () => void cargar())
   useEffect(() => {
     if (!session) return
-    supabase.from('ranked_player_profiles').select('acepta_comunicaciones').eq('user_id', session.user.id).maybeSingle()
-      .then(({ data }) => setOptin(data ? Boolean(data.acepta_comunicaciones) : null))
+    supabase.from('ranked_player_profiles').select('acepta_comunicaciones,edad,genero,codigo_postal').eq('user_id', session.user.id).maybeSingle()
+      .then(({ data }) => {
+        setOptin(data ? Boolean(data.acepta_comunicaciones) : null)
+        if (data) setDatos({ nombre: '', edad: String(data.edad ?? ''), genero: data.genero ?? 'Prefiero no decir', cp: data.codigo_postal ?? '' })
+      })
   }, [session])
 
   if (loading) return <Empty>Cargando…</Empty>
@@ -69,6 +74,25 @@ export default function Perfil() {
   const serie: number[] = [yo.puntos]
   for (const r of jugadas) serie.unshift(serie[0] - miDelta(r))
 
+  let maxRacha = 0, cur = 0
+  for (const r of [...jugadas].reverse()) { if (gane(r)) { cur++; maxRacha = Math.max(maxRacha, cur) } else cur = 0 }
+  const logros: [string, string, boolean][] = [
+    ['Primera victoria', 'Gana tu primer partido', ganadas >= 1],
+    ['Racha de 3', 'Gana 3 seguidos', maxRacha >= 3],
+    ['10 partidos', 'Juega 10 partidos de Ranked', jugadas.length >= 10],
+    ['+100 puntos', 'Llega a 1100 puntos', yo.puntos >= 1100],
+    ['Top 3', 'Entra al top 3 de la tabla', lugar > 0 && lugar <= 3],
+    ['Invicto en 5', 'Gana 5 seguidos', maxRacha >= 5],
+  ]
+  const guardarDatos = async () => {
+    if (!datos) return
+    setMsg(null)
+    const edad = Number(datos.edad)
+    if (!(edad >= 8 && edad <= 90) || !/^\d{5}$/.test(datos.cp)) return setMsg('Revisa tu edad y tu código postal (5 dígitos).')
+    const { error } = await supabase.rpc('ranked_actualizar_perfil', { p_nombre: datos.nombre.trim() || yo.nombre, p_edad: edad, p_genero: datos.genero, p_cp: datos.cp })
+    if (error) return setMsg('No se pudo guardar: ' + error.message)
+    setMsg('Datos guardados.'); void refresh(); void cargar()
+  }
   const toggle = async (v: boolean) => {
     setOptin(v)
     await supabase.from('ranked_player_profiles').update({ acepta_comunicaciones: v }).eq('user_id', session.user.id)
@@ -115,6 +139,33 @@ export default function Perfil() {
           })}</ul>
         )}
       </section>
+
+      <section className="card rise p-5">
+        <h2 className="mb-3 text-sm font-semibold">Logros</h2>
+        <ul className="grid grid-cols-2 gap-2">
+          {logros.map(([t, d, on]) => (
+            <li key={t} className={`rounded-btn border p-3 text-sm transition ${on ? 'border-terra bg-terra/5' : 'border-line opacity-50'}`}>
+              <div className="font-semibold">{t}</div><div className="text-xs text-soft">{on ? 'Conseguido' : d}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {datos && (
+        <section className="card rise space-y-3 p-5">
+          <h2 className="text-sm font-semibold">Mis datos</h2>
+          <div><label className="label">Nombre</label><input className="input" placeholder={yo.nombre} value={datos.nombre} onChange={(e) => setDatos({ ...datos, nombre: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="label">Edad</label><input className="input" inputMode="numeric" value={datos.edad} onChange={(e) => setDatos({ ...datos, edad: e.target.value.replace(/\D/g, '').slice(0, 2) })} /></div>
+            <div><label className="label">Código postal</label><input className="input" inputMode="numeric" value={datos.cp} onChange={(e) => setDatos({ ...datos, cp: e.target.value.replace(/\D/g, '').slice(0, 5) })} /></div>
+          </div>
+          <div><label className="label">Género</label>
+            <select className="input" value={datos.genero} onChange={(e) => setDatos({ ...datos, genero: e.target.value })}>{['Mujer', 'Hombre', 'Otro', 'Prefiero no decir'].map((g) => <option key={g}>{g}</option>)}</select></div>
+          {msg && <p className="text-xs text-soft">{msg}</p>}
+          <button className="btn-primary w-full" onClick={() => void guardarDatos()}>Guardar cambios</button>
+          <p className="text-xs text-soft">Tu nivel lo ajusta el administrador según tus resultados.</p>
+        </section>
+      )}
 
       <section className="card rise flex flex-col items-center gap-2 p-5">
         <QRCodeSVG value={yo.codigo ?? yo.id} size={130} fgColor="#111111" />

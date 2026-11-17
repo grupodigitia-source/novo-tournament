@@ -14,7 +14,7 @@ export default function Resultados() {
 
   const load = useCallback(async () => {
     const [{ data: r }, { data: p }] = await Promise.all([
-      supabase.from('ranked_retas').select('*').eq('estado', 'pendiente').order('fecha'),
+      supabase.from('ranked_retas').select('*').in('estado', ['pendiente', 'en_juego']).order('fecha'),
       supabase.from('ranked_players').select('*'),
     ])
     setRetas((r ?? []) as Reta[]); setPlayers((p ?? []) as Player[])
@@ -35,7 +35,7 @@ export default function Resultados() {
 
   const eliminar = async (r: Reta) => {
     if (!window.confirm('¿Eliminar este partido pendiente? No se puede deshacer.')) return
-    const { error } = await supabase.from('ranked_retas').delete().eq('id', r.id).eq('estado', 'pendiente')
+    const { error } = await supabase.from('ranked_retas').delete().eq('id', r.id).in('estado', ['pendiente', 'en_juego'])
     if (error) setErr(error.message); else void load()
   }
 
