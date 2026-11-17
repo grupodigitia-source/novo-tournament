@@ -11,8 +11,6 @@ function Slider({ label, v, set, min, max, step = 1, fmt = String }: { label: st
   )
 }
 
-const POR_CANCHA = 4 // pádel de dobles: 4 jugadores por cancha
-
 export default function Simulador() {
   const [precio, setPrecio] = useState(150)
   const [jugadores, setJugadores] = useState(8)
@@ -23,13 +21,11 @@ export default function Simulador() {
 
   const ingresos = precio * jugadores * retas
   const premios = ingresos * (premio / 100)
-  const nCanchas = Math.max(1, Math.ceil(jugadores / POR_CANCHA))
-  const canchaPorJugador = cancha / POR_CANCHA
-  const canchas = cancha * nCanchas * retas
+  const canchas = cancha * retas
   const costos = premios + canchas + fijos
   const utilidad = ingresos - costos
   const margen = ingresos > 0 ? (utilidad / ingresos) * 100 : 0
-  const contribucion = precio * jugadores * (1 - premio / 100) - cancha * nCanchas
+  const contribucion = precio * jugadores * (1 - premio / 100) - cancha
   const equilibrio = contribucion > 0 ? Math.ceil(fijos / contribucion) : null
   const max = Math.max(ingresos, costos, 1)
 
@@ -46,11 +42,8 @@ export default function Simulador() {
           <Slider label="Cuota por jugador" v={precio} set={setPrecio} min={50} max={400} step={10} fmt={mxn} />
           <Slider label="Jugadores por reta" v={jugadores} set={setJugadores} min={2} max={24} />
           <Slider label="Retas al mes" v={retas} set={setRetas} min={1} max={60} />
-          <Slider label="Costo por cancha (por reta)" v={cancha} set={setCancha} min={0} max={1000} step={25} fmt={mxn} />
+          <Slider label="Costo de cancha por reta" v={cancha} set={setCancha} min={0} max={1000} step={25} fmt={mxn} />
           <Slider label="Premios (% de ingresos)" v={premio} set={setPremio} min={0} max={50} fmt={(n) => n + '%'} />
-          <p className="rounded-btn bg-off p-3 text-xs text-soft">
-            {jugadores} jugadores = <b className="text-ink">{nCanchas} {nCanchas === 1 ? 'cancha' : 'canchas'}</b> por reta (4 por cancha). La cancha le cuesta <b className="text-ink">{mxn(canchaPorJugador)}</b> a cada jugador; con tu cuota te quedan <b className={precio - canchaPorJugador >= 0 ? 'text-pos' : 'text-neg'}>{mxn(precio - canchaPorJugador)}</b> por jugador antes de premios.
-          </p>
           <Slider label="Gastos fijos del mes" v={fijos} set={setFijos} min={0} max={10000} step={100} fmt={mxn} />
         </div>
         <div className="card rise space-y-5 p-5">

@@ -33,6 +33,12 @@ export default function Resultados() {
     void load()
   }
 
+  const eliminar = async (r: Reta) => {
+    if (!window.confirm('¿Eliminar este partido pendiente? No se puede deshacer.')) return
+    const { error } = await supabase.from('ranked_retas').delete().eq('id', r.id).eq('estado', 'pendiente')
+    if (error) setErr(error.message); else void load()
+  }
+
   return (
     <div>
       <Title sub="Elo con K = 32. Los puntos se actualizan al instante en la tabla y en la TV.">Capturar resultado</Title>
@@ -55,6 +61,7 @@ export default function Resultados() {
                 </div>
                 <div className="w-28 text-xs tabular-nums text-soft">{prev !== null && `${prev >= 0 ? '+' : ''}${prev} / ${-prev >= 0 ? '+' : ''}${-prev}`}</div>
                 <button className="btn-primary" onClick={() => void guardar(r)}>Guardar</button>
+                <button className="btn-ghost !text-neg" onClick={() => void eliminar(r)}>Eliminar</button>
               </div>
             )
           })}
